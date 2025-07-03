@@ -13,7 +13,7 @@ const token =
 
 const headers = {
   Authorization: `Bearer ${token}`,
-  "Content-Type": "application/json"
+  "Content-Type": "application/json",
 };
 
 const timeoutMap = new Map();
@@ -51,19 +51,28 @@ app.post("/cancelar", (req, res) => {
   const success = clearTimeouts(conversationId);
   if (success) {
     console.log(
-      `🔴 Mensagens canceladas para conversa ${conversationId} consultor ${req.body.messages[0].sender.available_name || "N/A"}`
+      `🔴 Mensagens canceladas para conversa ${conversationId} consultor ${
+        req.body.messages[0].sender.available_name || "N/A"
+      }`
     );
     return res
       .status(200)
       .json({ status: "mensagens canceladas", conversa: conversationId });
   } else {
     console.log(
-      `⚠️ Nenhuma mensagem agendada para cancelar para conversa ${conversationId} consultor ${req.body.messages[0].sender.available_name || "N/A"}`
+      `⚠️ Nenhuma mensagem agendada para cancelar para conversa ${conversationId} consultor ${
+        req.body.messages[0].sender.available_name || "N/A"
+      }`
     );
     return res
       .status(404)
       .json({ status: "nenhuma mensagem agendada para cancelar" });
   }
+});
+
+app.post("/consulta", (req) => {
+  const cpf = req.body.messages[0].content;
+  console.log(cpf);
 });
 
 function agendarMensagens(conversationId, mensagens) {
@@ -105,4 +114,6 @@ function clearTimeouts(conversationId) {
   return true;
 }
 
-app.listen(PORT, () => { console.log(`Servidor ativo em http://localhost:${PORT}`) });
+app.listen(PORT, () => {
+  console.log(`Servidor ativo em http://localhost:${PORT}`);
+});
