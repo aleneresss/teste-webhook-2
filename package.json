@@ -4,6 +4,5 @@
     "body-parser": "^2.2.0",
     "express": "^5.1.0"
   },
-  "type": "module",
-  "dev": "nodemon index.js"
+  "type": "module"
 }

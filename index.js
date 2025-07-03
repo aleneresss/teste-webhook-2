@@ -20,7 +20,7 @@ const timeoutMap = new Map();
 
 app.post("/agendar", async (req, res) => {
   console.log(
-    `✅ Follow Up Iniciado ${req.body.id} consultor ${req.body.messages[0].sender.available_name}`
+    `✅ Follow Up Autorização Iniciado ${req.body.id} consultor ${req.body.messages[0].sender.available_name}`
   );
   const conversationId = req.body.id;
   if (!conversationId)
@@ -70,9 +70,29 @@ app.post("/cancelar", (req, res) => {
   }
 });
 
-app.post("/consulta", (req) => {
-  const cpf = req.body.messages[0].content;
-  console.log(cpf);
+app.post("/saldos", (req, res) => {
+  console.log(
+    `✅ Follow Up Saldos Iniciado ${req.body.id} consultor ${req.body.messages[0].sender.available_name}`
+  );
+  const conversationId = req.body.id;
+  if (!conversationId)
+    return res.status(400).json({ erro: "ID não fornecido" });
+
+  if (timeoutMap.has(conversationId)) {
+    return res
+      .status(200)
+      .json({ status: "já agendado", conversa: conversationId });
+  }
+
+  const mensagens = [
+    "Olá, o seu saldo já está APROVADO e o valor é creditado em até 15 minutos na sua conta\n\nPodemos seguir com a liberação? **",
+    "Oi Tiago, te mandei algumas informações sobre seu FGTS. \nVi que não tive retorno referente a sua proposta.\n\nGostaria de saber se ficou com alguma dúvida quanto ao valor disponível?",
+  ];
+
+  agendarMensagens(conversationId, mensagens);
+  res
+    .status(200)
+    .json({ status: "mensagens agendadas", conversa: conversationId });
 });
 
 function agendarMensagens(conversationId, mensagens) {
