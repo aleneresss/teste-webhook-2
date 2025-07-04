@@ -32,7 +32,7 @@ function menuConsole() {
       switch (cmd.trim()) {
         case "agendar":
           rl.question("ID da conversa: ", (id) => {
-            rl.question("Tipo (followup / saldos): ", (tipo) => {
+            rl.question("Tipo (autorização / saldos): ", (tipo) => {
               if (!id || !tipo) return menuConsole();
               const mensagens =
                 tipo === "saldos"
@@ -70,7 +70,9 @@ function menuConsole() {
           } else {
             console.log(chalk.green("📋 Agendamentos ativos:"));
             agendados.forEach(([id, timeouts]) =>
-              console.log(`- conversa: ${id} (${timeouts.length} mensagens)`)
+              console.log(
+                `- conversa: ${id} (${timeouts.length} mensagens), ${timeouts[0]}`
+              )
             );
           }
           menuConsole();
