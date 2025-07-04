@@ -1,6 +1,8 @@
 import express from "express";
 import bodyParser from "body-parser";
 import axios from "axios";
+import readline from "readline";
+import chalk from "chalk";
 
 const app = express();
 const PORT = 4000;
@@ -17,6 +19,77 @@ const headers = {
 };
 
 const timeoutMap = new Map();
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+function menuConsole() {
+  rl.question(
+    chalk.cyanBright("\nComando (agendar / cancelar / listar / sair): "),
+    (cmd) => {
+      switch (cmd.trim()) {
+        case "agendar":
+          rl.question("ID da conversa: ", (id) => {
+            rl.question("Tipo (followup / saldos): ", (tipo) => {
+              if (!id || !tipo) return menuConsole();
+              const mensagens =
+                tipo === "saldos"
+                  ? [
+                      "Olá, o seu saldo já está APROVADO e será creditado em até 15 minutos.",
+                      "Vi que não tive retorno. Tem alguma dúvida sobre o valor?",
+                    ]
+                  : [
+                      "**Olá, conseguiu autorizar os bancos ? Possui alguma dúvida?**",
+                      "Vamos continuar?\n1 AUTORIZADOS\n2 DÚVIDAS\n3 ENCERRAR",
+                    ];
+
+              agendarMensagens(id, mensagens, true);
+              menuConsole();
+            });
+          });
+          break;
+
+        case "cancelar":
+          rl.question("ID da conversa: ", (id) => {
+            const sucesso = clearTimeouts(id);
+            if (sucesso) {
+              console.log(chalk.red(`🔴 Cancelado: ${id}`));
+            } else {
+              console.log(chalk.yellow(`⚠️ Nada para cancelar: ${id}`));
+            }
+            menuConsole();
+          });
+          break;
+
+        case "listar":
+          const agendados = Array.from(timeoutMap.entries());
+          if (agendados.length === 0) {
+            console.log(chalk.gray("📭 Nenhum agendamento ativo."));
+          } else {
+            console.log(chalk.green("📋 Agendamentos ativos:"));
+            agendados.forEach(([id, timeouts]) =>
+              console.log(`- conversa: ${id} (${timeouts.length} mensagens)`)
+            );
+          }
+          menuConsole();
+          break;
+
+        case "sair":
+          console.log("👋 Encerrando...");
+          rl.close();
+          process.exit();
+
+        default:
+          console.log(chalk.red("❌ Comando inválido."));
+          menuConsole();
+      }
+    }
+  );
+}
+
+menuConsole();
 
 app.post("/agendar", async (req, res) => {
   console.log(
@@ -35,6 +108,31 @@ app.post("/agendar", async (req, res) => {
   const mensagens = [
     "**Olá, conseguiu autorizar os bancos ? Possui alguma dúvida?**",
     "Olá, eu sigo aguardando para prosseguir com o seu atendimento. Vamos continuar?\n\nResponda\n1 para AUTORIZADOS.\n2 para DÚVIDAS\n3 para ENCERRAR ATENDIMENTO",
+  ];
+
+  agendarMensagens(conversationId, mensagens);
+  res
+    .status(200)
+    .json({ status: "mensagens agendadas", conversa: conversationId });
+});
+
+app.post("/saldos", (req, res) => {
+  console.log(
+    `✅ Follow Up Saldos Iniciado ${req.body.id} consultor ${req.body.messages[0].sender.available_name}`
+  );
+  const conversationId = req.body.id;
+  if (!conversationId)
+    return res.status(400).json({ erro: "ID não fornecido" });
+
+  if (timeoutMap.has(conversationId)) {
+    return res
+      .status(200)
+      .json({ status: "já agendado", conversa: conversationId });
+  }
+
+  const mensagens = [
+    "Olá, o seu saldo já está APROVADO e o valor é creditado em até 15 minutos na sua conta\n\nPodemos seguir com a liberação? **",
+    "Oi, te mandei algumas informações sobre seu FGTS. \nVi que não tive retorno referente a sua proposta.\n\nGostaria de saber se ficou com alguma dúvida quanto ao valor disponível?",
   ];
 
   agendarMensagens(conversationId, mensagens);
@@ -70,36 +168,11 @@ app.post("/cancelar", (req, res) => {
   }
 });
 
-app.post("/saldos", (req, res) => {
-  console.log(
-    `✅ Follow Up Saldos Iniciado ${req.body.id} consultor ${req.body.messages[0].sender.available_name}`
-  );
-  const conversationId = req.body.id;
-  if (!conversationId)
-    return res.status(400).json({ erro: "ID não fornecido" });
-
-  if (timeoutMap.has(conversationId)) {
-    return res
-      .status(200)
-      .json({ status: "já agendado", conversa: conversationId });
-  }
-
-  const mensagens = [
-    "Olá, o seu saldo já está APROVADO e o valor é creditado em até 15 minutos na sua conta\n\nPodemos seguir com a liberação? **",
-    "Oi, te mandei algumas informações sobre seu FGTS. \nVi que não tive retorno referente a sua proposta.\n\nGostaria de saber se ficou com alguma dúvida quanto ao valor disponível?",
-  ];
-
-  agendarMensagens(conversationId, mensagens);
-  res
-    .status(200)
-    .json({ status: "mensagens agendadas", conversa: conversationId });
-});
-
-function agendarMensagens(conversationId, mensagens) {
+function agendarMensagens(conversationId, mensagens, log = false) {
   const timeouts = [];
 
   mensagens.forEach((mensagem, index) => {
-    const delay = (index + 1) * 900000; // timer
+    const delay = (index + 1) * 900000;
 
     const timeout = setTimeout(() => {
       axios
@@ -109,12 +182,18 @@ function agendarMensagens(conversationId, mensagens) {
           { headers }
         )
         .then(() => {
-          console.log(`Mensagem ${index + 1} enviada para ${conversationId}`);
+          console.log(
+            chalk.blueBright(
+              `✅ Mensagem ${index + 1} enviada para ${conversationId}`
+            )
+          );
         })
         .catch((error) => {
           console.error(
-            `Erro ao enviar mensagem ${index + 1}:`,
-            error.response?.data || error.message
+            chalk.red(
+              `❌ Erro ao enviar mensagem ${index + 1}:`,
+              error.response?.data || error.message
+            )
           );
         });
     }, delay);
@@ -123,6 +202,13 @@ function agendarMensagens(conversationId, mensagens) {
   });
 
   timeoutMap.set(conversationId, timeouts);
+  if (log) {
+    console.log(
+      chalk.green(
+        `🕒 ${mensagens.length} mensagens agendadas para ${conversationId}`
+      )
+    );
+  }
 }
 
 function clearTimeouts(conversationId) {
