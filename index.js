@@ -43,6 +43,7 @@ function menuConsole() {
                   : [
                       "**Olá, conseguiu autorizar os bancos ? Possui alguma dúvida?**",
                       "Vamos continuar?\n1 AUTORIZADOS\n2 DÚVIDAS\n3 ENCERRAR",
+                      teste,
                     ];
 
               agendarMensagens(id, mensagens, true);
@@ -70,9 +71,7 @@ function menuConsole() {
           } else {
             console.log(chalk.green("📋 Agendamentos ativos:"));
             agendados.forEach(([id, timeouts]) =>
-              console.log(
-                `- conversa: ${id} (${timeouts.length} mensagens), ${timeouts[0]}`
-              )
+              console.log(`- conversa: ${id} (${timeouts.length} mensagens)`)
             );
           }
           menuConsole();
