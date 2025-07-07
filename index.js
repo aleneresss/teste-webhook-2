@@ -1,7 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
 import axios from "axios";
-import readline from "readline";
 import chalk from "chalk";
 
 const app = express();
