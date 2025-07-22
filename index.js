@@ -8,9 +8,8 @@ const PORT = 4000;
 
 app.use(bodyParser.json());
 
-const accountId = 7;
-const token =
-  "eyJhY2Nlc3MtdG9rZW4iOiJLc2JJeFc3azROdGk4Snk4bUZFblFRIiwidG9rZW4tdHlwZSI6IkJlYXJlciIsImNsaWVudCI6IjNzMUNyNk9KTEQ1T0QzYmJ2QmNRUWciLCJleHBpcnkiOiIxNzU2ODM1NzYzIiwidWlkIjoiZ3J1cG9kaWdpdGFsc2ZAZ21haWwuY29tIn0=";
+const accountId = 4;
+const token = "eyJhY2Nlc3MtdG9rZW4iOiJoS1l6TFZUZTZ3ZHRWTEdHc1c0Y2lnIiwidG9rZW4tdHlwZSI6IkJlYXJlciIsImNsaWVudCI6Ikt0NTg0U3ZDRXpqMG0yX09qSDluLXciLCJleHBpcnkiOiIxNzU4MjE3OTc1IiwidWlkIjoiZ3J1cG9kaWdpdGFsc2ZAZ21haWwuY29tIn0=";
 
 const headers = {
   Authorization: `Bearer ${token}`,
@@ -100,7 +99,7 @@ function agendarMensagens(conversationId, mensagens, log = false) {
   const timeouts = [];
 
   mensagens.forEach((mensagem, index) => {
-    const delay = (index + 1) * 900000;
+    const delay = (index + 1) * 90000;
 
     const timeout = setTimeout(() => {
       axios
@@ -117,12 +116,18 @@ function agendarMensagens(conversationId, mensagens, log = false) {
           );
         })
         .catch((error) => {
-          console.error(
-            chalk.red(
-              `❌ Erro ao enviar mensagem ${index + 1}:`,
-              error.response?.data || error.message
-            )
-          );
+            console.error(
+              chalk.red(`❌ Erro ao enviar mensagem ${index + 1}:`)
+            );
+            if (error.response) {
+              console.error("Status:", error.response.status);
+              console.error("Data:", JSON.stringify(error.response.data, null, 2));
+              console.error("Headers:", JSON.stringify(error.response.headers, null, 2));
+            } else if (error.request) {
+              console.error("Sem resposta recebida:", error.request);
+            } else {
+              console.error("Erro ao configurar requisição:", error.message);
+            }
         });
     }, delay);
 
